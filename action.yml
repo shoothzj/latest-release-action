@@ -1,0 +1,20 @@
+name: Latest Release
+description: Perform latest release
+author: "shoothzj"
+
+inputs:
+  tag_name:
+    description: tag name
+    required: false
+    default: "latest"
+  release_name:
+    description: release name
+    required: false
+    default: "latest"
+  files:
+    description: "upload files, split by comma"
+    required: true
+
+runs:
+  using: 'node16'
+  main: 'src/main.js'
