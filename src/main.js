@@ -24,6 +24,7 @@ const octokit = new Octokit({
 });
 
 async function deleteReleases() {
+  core.info(`Deleting releases for '${tag}'...`)
   try {
     const { data: releases } = await octokit.repos.listReleases({
       owner: owner,
@@ -48,6 +49,7 @@ async function deleteReleases() {
 }
 
 async function deleteTag() {
+  core.info(`Deleting tag '${tag}'...`)
   try {
     const { data: existingRef } = await octokit.git.getRef({
       owner: owner,
@@ -71,6 +73,7 @@ async function deleteTag() {
 }
 
 async function createTag() {
+  core.info(`Creating tag '${tag}'...`)
   try {
     await octokit.git.createRef({
       owner: owner,
@@ -85,6 +88,7 @@ async function createTag() {
 }
 
 async function createRelease() {
+  core.info(`Creating release '${tag}'...`)
   try {
     const { data: release } = await octokit.repos.createRelease({
       owner: owner,
@@ -103,7 +107,9 @@ async function createRelease() {
 }
 
 async function uploadAssets(releaseId) {
+  core.info(`Uploading assets for '${tag}'...`)
   for (const asset of files) {
+    core.info(`Uploading asset '${asset}'...`)
     const filePath = path.resolve(asset);
     const fileStats = fs.statSync(filePath);
     const fileSize = fileStats.size;
@@ -123,6 +129,7 @@ async function uploadAssets(releaseId) {
 }
 
 async function markReleaseAsPublished(releaseId) {
+  core.info(`Marking release '${tag}' as published...`)
   try {
     await octokit.repos.updateRelease({
       owner: owner,
@@ -146,6 +153,7 @@ async function run() {
     await markReleaseAsPublished(releaseId);
     core.setOutput('release_id', releaseId);
   } catch (err) {
+    core.error(err)
     core.setFailed(err.message);
   }
 }
