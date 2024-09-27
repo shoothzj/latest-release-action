@@ -1,6 +1,5 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
-const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
 
@@ -19,12 +18,15 @@ const repo = github.context.payload.repository.name;
 const sha = github.context.sha;
 core.info(`owner: ${owner}, repo: ${repo}, sha: ${sha}`);
 
-const octokit = new Octokit({
-  auth: token,
-});
+let octokit;
+
+async function initOctokit() {
+  const { Octokit } = await import("@octokit/rest");
+  octokit = new Octokit({ auth: token });
+}
 
 async function deleteReleases() {
-  core.info(`Deleting releases for '${tag}'...`)
+  core.info(`Deleting releases for '${tag}'...`);
   try {
     const { data: releases } = await octokit.repos.listReleases({
       owner: owner,
@@ -111,17 +113,23 @@ async function uploadAssets(releaseId) {
   for (const asset of files) {
     core.info(`Uploading asset '${asset}'...`)
     const filePath = path.resolve(asset);
+    const fileStats = fs.statSync(filePath);
+    const fileSize = fileStats.size;
     const fileName = path.basename(filePath);
 
     const fileStream = fs.createReadStream(filePath);
-    await octokit.rest.repos.uploadReleaseAsset({
+    const upload = await octokit.rest.repos.uploadReleaseAsset({
       owner: owner,
       repo: repo,
       release_id: releaseId,
       name: fileName,
-      data: fileStream
+      data: fileStream,
+      headers: {
+        'content-type': 'application/octet-stream',
+        'content-length': fileSize,
+        }
     });
-    core.info(`Uploaded asset '${fileName}' with ID ${upload.id}`);
+    core.info(`Uploaded asset '${fileName}' with ID ${upload.data.id}`);
   }
 }
 
@@ -142,6 +150,7 @@ async function markReleaseAsPublished(releaseId) {
 
 async function run() {
   try {
+    await initOctokit();
     await deleteReleases();
     await deleteTag();
     await createTag();
@@ -150,7 +159,7 @@ async function run() {
     await markReleaseAsPublished(releaseId);
     core.setOutput('release_id', releaseId);
   } catch (err) {
-    core.error(err)
+    core.error(err);
     core.setFailed(err.message);
   }
 }
