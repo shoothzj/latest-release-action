@@ -111,17 +111,14 @@ async function uploadAssets(releaseId) {
   for (const asset of files) {
     core.info(`Uploading asset '${asset}'...`)
     const filePath = path.resolve(asset);
-    const fileStats = fs.statSync(filePath);
-    const fileSize = fileStats.size;
     const fileName = path.basename(filePath);
 
     const fileStream = fs.createReadStream(filePath);
-    const { data: upload } = await octokit.repos.uploadReleaseAsset({
-      url: `https://uploads.github.com/repos/${owner}/${repo}/releases/${releaseId}/assets?name=${fileName}`,
-      headers: {
-        'content-type': 'application/octet-stream',
-        'content-length': fileSize
-      },
+    await octokit.rest.repos.uploadReleaseAsset({
+      owner: owner,
+      repo: repo,
+      release_id: releaseId,
+      name: fileName,
       data: fileStream
     });
     core.info(`Uploaded asset '${fileName}' with ID ${upload.id}`);
